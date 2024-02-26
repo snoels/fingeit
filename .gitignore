@@ -1,0 +1,7 @@
+data/*
+*.pyc
+*.ipynb
+!data_processing.ipynb
+!combine_datasets.ipynb
+!evaluation_nl.ipynb
+!evaluation_en.ipynb
