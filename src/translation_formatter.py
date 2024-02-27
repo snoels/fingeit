@@ -4,8 +4,7 @@
 
 import argparse
 
-import pandas as pd
-from datasets import Dataset, DatasetDict, load_from_disk
+from datasets import DatasetDict, load_from_disk
 from utils import word_indexes
 
 
@@ -29,17 +28,12 @@ def split_into_parts(text: str) -> tuple[str, str, str]:
     return instruction, input_, response
 
 
-def update_instruction_input_response(x: pd.Series) -> pd.Series:
-    """Update the instruction, input and output collumns based on the translation collumn."""
-    try:
-        instruction, _input, response = split_into_parts(x["translation"])
-        x["instruction"] = instruction
-        x["input"] = _input
-        x["output"] = response
-        x["success"] = True
-    except Exception as e:
-        print("Could not split in parts")
-        x["success"] = False
+def update_instruction_input_response(x):
+    """Update the instruction, input and output columns based on the translation column."""
+    instruction, _input, response = split_into_parts(x["translation"])
+    x["instruction"] = instruction
+    x["input"] = _input
+    x["output"] = response
     return x
 
 
@@ -63,44 +57,15 @@ def format_datasetdict(original: DatasetDict) -> DatasetDict:
     returns:
         the updated datsetdict
     """
-    new = DatasetDict()
+
     for key in original.keys():
         print(f"\t> Formatting {key} dataset")
-        df = original[key].to_pandas()
-        df = df.apply(update_instruction_input_response, axis=1)
-        df = df[~df["success"]]
-        # if df.shape[0] > 0:
-        #     raise Exception("Dataset not fully correct translated")
-        new[key] = Dataset.from_pandas(
-            df[["input", "output", "instruction"]], preserve_index=False
+        dataset = original[key]
+        dataset = dataset.map(update_instruction_input_response).map(
+            remove_columns=["translation", "prompt"]
         )
-    return new
-
-
-def format_datasetdict2(original: DatasetDict) -> DatasetDict:
-    """Update all datasets with the translation of input, output and instruction.
-
-    Given that the translation is property in the dataset formatted as a Lama prompt,
-    it will extract the translated input, output and instruction from the lama prompt translation and
-    update it in the datasets
-
-    Params:
-        original: datasetdict containing datasets that need to be updated
-    returns:
-        the updated datsetdict
-    """
-    new = DatasetDict()
-    for key in original.keys():
-        print(f"\t> Formatting {key} dataset")
-        df = original[key].to_pandas()
-        df = df.apply(update_instruction_input_response, axis=1)
-        df = df[~df["success"]]
-        # if df.shape[0] > 0:
-        #     raise Exception("Dataset not fully correct translated")
-        new[key] = Dataset.from_pandas(
-            df[["input", "output", "instruction"]], preserve_index=False
-        )
-    return new
+        original[key] = dataset
+    return original
 
 
 def main():
@@ -111,6 +76,7 @@ def main():
     new = format_datasetdict(original)
     print("> Saving dataset")
     new.save_to_disk(args.db_new_location)
+    new.set
 
 
 if __name__ == "__main__":
