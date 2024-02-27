@@ -18,6 +18,7 @@ def test_word_index_should_return_indexes():
     ("\ninput: b\nresponse: ", False),
     ("instruction: b\nresponse: c", False),
     ("instruction: a\ninput: c", False),
+    (None, False),
    ]                       
 )
 

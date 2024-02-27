@@ -19,10 +19,12 @@ def word_indexes(text:str, lookup:str) -> tuple[int,int]:
 
 
 def is_translation_valid(text:str) -> bool:
+    if not text:
+        return False
     try:
         word_indexes(text,'instruction')
         word_indexes(text,'input')
         word_indexes(text,'response')
         return True
-    except AttributeError:
+    except Exception:
         return False
