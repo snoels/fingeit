@@ -4,7 +4,7 @@
 
 import argparse
 
-from datasets import DatasetDict, load_from_disk
+from datasets import Dataset, DatasetDict, load_from_disk
 from utils import word_indexes
 
 
@@ -30,10 +30,13 @@ def split_into_parts(text: str) -> tuple[str, str, str]:
 
 def update_instruction_input_response(x):
     """Update the instruction, input and output columns based on the translation column."""
-    instruction, _input, response = split_into_parts(x["translation"])
-    x["instruction"] = instruction
-    x["input"] = _input
-    x["output"] = response
+    try:
+        instruction, _input, response = split_into_parts(x["translation"])
+        x["instruction"] = instruction
+        x["input"] = _input
+        x["output"] = response
+    except Exception:
+        pass
     return x
 
 
@@ -58,14 +61,15 @@ def format_datasetdict(original: DatasetDict) -> DatasetDict:
         the updated datsetdict
     """
 
+    new = DatasetDict()
     for key in original.keys():
         print(f"\t> Formatting {key} dataset")
         dataset = original[key]
         dataset = dataset.map(update_instruction_input_response).map(
             remove_columns=["translation", "prompt"]
         )
-        original[key] = dataset
-    return original
+        new[key] = Dataset.from_pandas(dataset.to_pandas())
+    return new
 
 
 def main():
@@ -75,8 +79,9 @@ def main():
     print("> Formatting dataset")
     new = format_datasetdict(original)
     print("> Saving dataset")
+    # for key in original.keys():
+    #     new[key].save_to_disk(args.db_new_location + f"/{key}")
     new.save_to_disk(args.db_new_location)
-    new.set
 
 
 if __name__ == "__main__":
