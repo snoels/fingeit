@@ -4,8 +4,9 @@
 import argparse
 import os
 
-from config import load_config
 from datasets import load_dataset
+
+from data_processing.config.config import load_config
 
 
 def load_args():
