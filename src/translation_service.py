@@ -22,7 +22,6 @@ import argparse
 import asyncio
 import os
 import ssl
-import time
 from configparser import ConfigParser
 
 import aiohttp
@@ -76,7 +75,7 @@ def load_config(args):
     return config
 
 
-async def call_chatgpt_async(session, config, target: str, pbar):
+async def call_chatgpt_async(session, config, target: str):
     payload = {
         "model": config.get("TRANSLATE", "model"),
         "messages": [
@@ -102,24 +101,30 @@ async def call_chatgpt_async(session, config, target: str, pbar):
             response = await asyncio.wait_for(response.json(), timeout=60)
         if "error" in response:
             print(f"OpenAI request failed with error {response['error']}")
-            pbar.update(1)
-        pbar.update(1)
         return response["choices"][0]["message"]["content"]
     except asyncio.TimeoutError:
         print("The request has timed out.")
     except Exception as e:
-        print("Request failed.")
+        print("Request failed: ", str(e))
 
 
-async def call_chatgpt_bulk(prompts, config):
+async def call_chatgpt_bulk(prompts, config, chunk_size=5000):
     async with aiohttp.ClientSession() as session:
+        responses = []
         with tqdm(total=len(prompts), desc="Translating") as pbar:
-            responses = await asyncio.gather(
-                *[
-                    call_chatgpt_async(session, config, prompt, pbar)
-                    for prompt in prompts
-                ]
-            )
+            for i in range(0, len(prompts), chunk_size):
+                end = (
+                    i + chunk_size if (i + chunk_size < len(prompts)) else len(prompts)
+                )
+                prompts_chunk = prompts[i:end]
+                chunk_responses = await asyncio.gather(
+                    *[
+                        call_chatgpt_async(session, config, prompt)
+                        for prompt in prompts_chunk
+                    ]
+                )
+                responses += chunk_responses
+                pbar.update(len(chunk_responses))
     return responses
 
 
@@ -187,11 +192,8 @@ def translate_and_add_response(dataset, config):
         pd_df = pd.DataFrame(dataset[dataset_keys])
         prompts = list(pd_df["prompt"])
 
-        start_time = time.time()
         responses = asyncio.run(call_chatgpt_bulk(prompts, config))
-        elapsed_time = time.time() - start_time
 
-        print(f"The translation took {elapsed_time} seconds to run.")
         dataset_with_translation = dataset[dataset_keys].add_column(
             "translation", responses
         )
@@ -214,7 +216,7 @@ def main():
     # Load and filter dataset
     dataset = load_from_disk(args.db_location)
     for dataset_keys in dataset.keys():
-        dataset[dataset_keys] = dataset[dataset_keys].select(range(1000))
+        dataset[dataset_keys] = dataset[dataset_keys]
 
     # Add prompts to the dataset
     dataset = add_prompts(dataset, args.prompt_type)
