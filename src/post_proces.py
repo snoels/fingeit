@@ -8,7 +8,7 @@ from uuid import uuid4
 
 import fasttext
 from datasets import load_from_disk
-from huggingface_hub import HfApi, hf_hub_download
+from huggingface_hub import hf_hub_download
 from translation_service import call_chatgpt_sync, load_config
 from utils import filter_dataset, identify_language
 

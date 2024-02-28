@@ -30,6 +30,7 @@ import certifi
 import pandas as pd
 import requests
 from datasets import load_from_disk
+from tqdm.auto import tqdm
 
 
 def load_args():
@@ -75,7 +76,7 @@ def load_config(args):
     return config
 
 
-async def call_chatgpt_async(session, config, target: str):
+async def call_chatgpt_async(session, config, target: str, pbar):
     payload = {
         "model": config.get("TRANSLATE", "model"),
         "messages": [
@@ -98,19 +99,27 @@ async def call_chatgpt_async(session, config, target: str):
             json=payload,
             ssl=ssl.create_default_context(cafile=certifi.where()),
         ) as response:
-            response = await response.json()
+            response = await asyncio.wait_for(response.json(), timeout=60)
         if "error" in response:
             print(f"OpenAI request failed with error {response['error']}")
+            pbar.update(1)
+        pbar.update(1)
         return response["choices"][0]["message"]["content"]
-    except:
+    except asyncio.TimeoutError:
+        print("The request has timed out.")
+    except Exception as e:
         print("Request failed.")
 
 
 async def call_chatgpt_bulk(prompts, config):
     async with aiohttp.ClientSession() as session:
-        responses = await asyncio.gather(
-            *[call_chatgpt_async(session, config, prompt) for prompt in prompts]
-        )
+        with tqdm(total=len(prompts), desc="Translating") as pbar:
+            responses = await asyncio.gather(
+                *[
+                    call_chatgpt_async(session, config, prompt, pbar)
+                    for prompt in prompts
+                ]
+            )
     return responses
 
 
@@ -205,7 +214,7 @@ def main():
     # Load and filter dataset
     dataset = load_from_disk(args.db_location)
     for dataset_keys in dataset.keys():
-        dataset[dataset_keys] = dataset[dataset_keys].select(range(100))
+        dataset[dataset_keys] = dataset[dataset_keys].select(range(1000))
 
     # Add prompts to the dataset
     dataset = add_prompts(dataset, args.prompt_type)
