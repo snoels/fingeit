@@ -28,6 +28,7 @@ from configparser import ConfigParser
 import aiohttp
 import certifi
 import pandas as pd
+import requests
 from datasets import load_from_disk
 
 
@@ -111,6 +112,37 @@ async def call_chatgpt_bulk(prompts, config):
             *[call_chatgpt_async(session, config, prompt) for prompt in prompts]
         )
     return responses
+
+
+def call_chatgpt_sync(config, target: str):
+    payload = {
+        "model": config.get("TRANSLATE", "model"),
+        "messages": [
+            {"role": "system", "content": config.get("TRANSLATE", "system_prompt")},
+            {
+                "role": "user",
+                "content": config.get("TRANSLATE", "prompt") + "\n\n" + target,
+            },
+        ],
+        "max_tokens": config.getint("TRANSLATE", "max_tokens"),
+        "temperature": config.getfloat("TRANSLATE", "temperature"),
+    }
+    try:
+        response = requests.post(
+            url="https://api.openai.com/v1/chat/completions",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {config.get('TRANSLATE', 'openai_secret_key')}",
+            },
+            json=payload,
+            verify=certifi.where(),
+        )
+        response = response.json()
+        if "error" in response:
+            print(f"OpenAI request failed with error {response['error']}")
+        return response["choices"][0]["message"]["content"]
+    except:
+        print("Request failed.")
 
 
 def alpaca_prompt(instruction, input, response):
