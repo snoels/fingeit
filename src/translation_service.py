@@ -49,6 +49,12 @@ def load_args():
         default="Dutch",
         help="Specify the target language for translations. The translation model and prompts will be adjusted based on this language. Default is 'Dutch'.",
     )
+    parser.add_argument(
+        "--retry",
+        type=int,
+        default=0,
+        help="Enable retry functionality. Default is '0'. 1 enables retry.",
+    )
 
     return parser.parse_args()
 
@@ -98,7 +104,7 @@ async def call_chatgpt_async(session, config, target: str):
             json=payload,
             ssl=ssl.create_default_context(cafile=certifi.where()),
         ) as response:
-            response = await asyncio.wait_for(response.json(), timeout=60)
+            response = await asyncio.wait_for(response.json(), timeout=80)
         if "error" in response:
             print(f"OpenAI request failed with error {response['error']}")
         return response["choices"][0]["message"]["content"]
@@ -108,7 +114,7 @@ async def call_chatgpt_async(session, config, target: str):
         print("Request failed: ", str(e))
 
 
-async def call_chatgpt_bulk(prompts, config, chunk_size=5000):
+async def call_chatgpt_bulk(prompts, config, chunk_size=3500):
     async with aiohttp.ClientSession() as session:
         responses = []
         with tqdm(total=len(prompts), desc="Translating") as pbar:
@@ -186,6 +192,32 @@ def add_prompts(dataset, prompt_type):
     return dataset
 
 
+def retry_translate_and_add_response(dataset, config):
+    """Translates dataset from prompts and adds response to dataset."""
+    for dataset_keys in dataset.keys():
+        pd_df = pd.DataFrame(dataset[dataset_keys])
+        # Extract prompts that are yet to be translated (translation is None)
+        prompts_to_translate = pd_df[pd_df["translation"].isna()][
+            "prompt"
+        ].values.tolist()
+        indices_to_translate = pd_df[pd_df["translation"].isna()].index.tolist()
+
+        if prompts_to_translate:
+            # Retrieve translations
+            translations = asyncio.run(call_chatgpt_bulk(prompts_to_translate, config))
+
+            # Assign translations back to the dataset at appropriate indices
+            for idx, translation in zip(indices_to_translate, translations):
+                pd_df.at[idx, "translation"] = translation
+
+            new_dataset = dataset[dataset_keys].remove_columns("translation")
+            dataset_with_new_translation = new_dataset.add_column(
+                "translation", list(pd_df["translation"])
+            )
+            dataset[dataset_keys] = dataset_with_new_translation
+    return dataset
+
+
 def translate_and_add_response(dataset, config):
     """Translates dataset from prompts and adds response to dataset."""
     for dataset_keys in dataset.keys():
@@ -215,14 +247,12 @@ def main():
 
     # Load and filter dataset
     dataset = load_from_disk(args.db_location)
-    for dataset_keys in dataset.keys():
-        dataset[dataset_keys] = dataset[dataset_keys]
 
-    # Add prompts to the dataset
-    dataset = add_prompts(dataset, args.prompt_type)
-
-    # Translate and add response to the dataset
-    dataset = translate_and_add_response(dataset, config)
+    if args.retry:
+        dataset = retry_translate_and_add_response(dataset, config)
+    else:
+        dataset = add_prompts(dataset, args.prompt_type)
+        dataset = translate_and_add_response(dataset, config)
 
     # Save dataset to new location
     save_dataset(dataset, args)
