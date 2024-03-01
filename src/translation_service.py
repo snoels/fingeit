@@ -114,7 +114,7 @@ async def call_chatgpt_async(session, config, target: str):
         print("Request failed: ", str(e))
 
 
-async def call_chatgpt_bulk(prompts, config, chunk_size=3500):
+async def call_chatgpt_bulk(prompts, config, chunk_size=4500):
     async with aiohttp.ClientSession() as session:
         responses = []
         with tqdm(total=len(prompts), desc="Translating") as pbar:
