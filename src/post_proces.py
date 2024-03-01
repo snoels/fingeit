@@ -8,6 +8,12 @@ from datasets import load_from_disk
 from huggingface_hub import hf_hub_download
 from translation_service import call_chatgpt_bulk, load_config, save_dataset
 from utils import filter_dataset, is_language
+from utils import filter_dataset
+
+from src.data_processing.translation_service import (
+    load_config,
+    save_dataset,
+)
 
 
 def parse_args() -> argparse.Namespace:
