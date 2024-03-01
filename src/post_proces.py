@@ -1,21 +1,19 @@
 import argparse
 import copy
-import os
-import shutil
 from functools import partial
 from typing import Any, Dict
-from uuid import uuid4
 
 import fasttext
 from datasets import load_from_disk
 from huggingface_hub import hf_hub_download
-from translation_service import call_chatgpt_sync, load_config
+from translation_service import call_chatgpt_sync, load_config, save_dataset
 from utils import filter_dataset, identify_language
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--db_location", type=str, help="Database location")
+    parser.add_argument("--db_new_location", type=str, help="New database location")
     parser.add_argument(
         "--max_retries", type=int, default=3, help="Maximum number of allowed retries"
     )
@@ -34,12 +32,22 @@ def update_translation(
     return new_value if idx == idx_to_change else example
 
 
-def filter_translations(args: argparse.Namespace):
-    dataset = load_from_disk(args.db_location)
+def replace_options(example):
+    example["translation"] = example["text"].replace("Options:", "Opties:")
+    return example
+
+
+def post_process_wrong_transaltions(dataset):
+    for dataset_keys in dataset.keys():
+        dataset[dataset_keys] = dataset[dataset_keys].map(replace_options)
+
+    return dataset
+
+
+def filter_translations(args: argparse.Namespace, dataset):
     config = load_config(args)
 
-    temporary_location = os.path.join(os.path.dirname(args.db_location), str(uuid4()))
-    os.makedirs(temporary_location, exist_ok=True)
+    dataset = post_process_wrong_transaltions(dataset)
 
     for dataset_keys, dataset_values in dataset.items():
         remove_indexes = []
@@ -80,20 +88,12 @@ def filter_translations(args: argparse.Namespace):
             lambda _, idx: idx not in remove_indexes, with_indices=True
         )
 
-    # save the modified dataset to a temporary location
-    dataset.save_to_disk(temporary_location)
-
-    # replace the original dataset with the updated one from temporary location
-    shutil.rmtree(args.db_location)
-    shutil.move(temporary_location, args.db_location)
+    return dataset
 
 
 def check_language(args: argparse.Namespace, target_language="nld"):
     dataset = load_from_disk(args.db_location)
     config = load_config(args)
-
-    temporary_location = os.path.join(os.path.dirname(args.db_location), str(uuid4()))
-    os.makedirs(temporary_location, exist_ok=True)
 
     model_path = hf_hub_download(
         repo_id="facebook/fasttext-language-identification", filename="model.bin"
@@ -143,19 +143,17 @@ def check_language(args: argparse.Namespace, target_language="nld"):
             lambda _, idx: idx not in remove_indexes, with_indices=True
         )
 
-    # save the modified dataset to a temporary location
-    dataset.save_to_disk(temporary_location)
-
-    # replace the original dataset with the updated one from temporary location
-    shutil.rmtree(args.db_location)
-    shutil.move(temporary_location, args.db_location)
+    return dataset
 
 
 if __name__ == "__main__":
     args = parse_args()
 
-    # filter translations
-    filter_translations(args)
-
     # check languages
-    check_language(args)
+    dataset = check_language(args)
+
+    # filter translations
+    dataset = filter_translations(args, dataset)
+
+    # Save dataset to new location
+    save_dataset(dataset, args)
