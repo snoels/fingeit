@@ -1,14 +1,13 @@
 import argparse
-import copy
+import asyncio
 import time
-from functools import partial
-from typing import Any, Dict
 
 import fasttext
+import pandas as pd
 from datasets import load_from_disk
 from huggingface_hub import hf_hub_download
-from translation_service import call_chatgpt_sync, load_config, save_dataset
-from utils import filter_dataset, identify_language
+from translation_service import call_chatgpt_bulk, load_config, save_dataset
+from utils import filter_dataset, is_language
 
 
 def parse_args() -> argparse.Namespace:
@@ -27,14 +26,8 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def update_translation(
-    example: Dict[str, Any], idx: int, idx_to_change: int, new_value: Dict[str, Any]
-) -> Any:
-    return new_value if idx == idx_to_change else example
-
-
 def replace_options(example):
-    example["translation"] = example["text"].replace("Options:", "Opties:")
+    example["translation"] = example["translation"].replace("Options:", "Opties:")
     return example
 
 
@@ -45,55 +38,30 @@ def post_process_wrong_transaltions(dataset):
     return dataset
 
 
-def filter_translations(args: argparse.Namespace, dataset):
-    config = load_config(args)
+def filter_bad_translations(dataset):
+    for key in dataset.keys():
+        df = pd.DataFrame(dataset[key])
 
-    dataset = post_process_wrong_transaltions(dataset)
+        dataset_with_index = dataset[key].add_column("index", df.index.tolist())
 
-    for dataset_keys, dataset_values in dataset.items():
-        remove_indexes = []
-        for idx, row in enumerate(dataset_values):
-            row = copy.deepcopy(row)
+        indices_of_bad_translations = df[
+            ~df["translation"].apply(lambda x: filter_dataset(x))
+        ].index.tolist()
 
-            if filter_dataset(row, "translation"):
-                continue
+        print(indices_of_bad_translations)
 
-            for retry in range(args.max_retries):
-                try:
-                    translation = call_chatgpt_sync(config, row["prompt"])
-                    row["translation"] = translation
-                    if translation and filter_dataset(row, "translation"):
-                        dataset[dataset_keys] = dataset_values.map(
-                            partial(
-                                update_translation, idx_to_change=idx, new_value=row
-                            ),
-                            with_indices=True,
-                        )
-                        print(
-                            f"Row {idx} translation succeeded after {retry + 1} attempts."
-                        )
-                        break
-
-                except Exception as e:
-                    print(
-                        f"Row {idx} translation failed on attempt {retry + 1}: {str(e)}"
-                    )
-            else:
-                print(
-                    f"Row {idx} translation failed after {args.max_retries} attempts."
-                )
-                remove_indexes.append(idx)
-
-        print("to_remove", remove_indexes)
-        dataset[dataset_keys] = dataset_values.filter(
-            lambda _, idx: idx not in remove_indexes, with_indices=True
-        )
+        dataset[key] = dataset_with_index.filter(
+            lambda example: example["index"] not in indices_of_bad_translations
+        ).remove_columns("index")
 
     return dataset
 
 
 def check_language(args: argparse.Namespace, target_language="nld"):
     dataset = load_from_disk(args.db_location)
+
+    dataset = post_process_wrong_transaltions(dataset)
+
     config = load_config(args)
 
     model_path = hf_hub_download(
@@ -101,48 +69,48 @@ def check_language(args: argparse.Namespace, target_language="nld"):
     )
     model = fasttext.load_model(model_path)
 
-    for dataset_keys, dataset_values in dataset.items():
-        remove_indexes = []
-        for idx, row in enumerate(dataset_values):
-            row = copy.deepcopy(row)
-
-            if identify_language(row, "translation", model) == target_language:
-                continue
-
-            for retry in range(args.max_retries):
-                try:
-                    translation = call_chatgpt_sync(config, row["prompt"])
-                    row["translation"] = translation
-                    if (
-                        translation
-                        and identify_language(row, "translation", model)
-                        == target_language
-                    ):
-                        dataset[dataset_keys] = dataset_values.map(
-                            partial(
-                                update_translation, idx_to_change=idx, new_value=row
-                            ),
-                            with_indices=True,
-                        )
-                        print(
-                            f"Row {idx} translation succeeded after {retry + 1} attempts. The translation has been changed to Dutch."
-                        )
-                        break
-
-                except Exception as e:
-                    print(
-                        f"Row {idx} translation failed on attempt {retry + 1}: {str(e)}"
-                    )
-            else:
-                print(
-                    f"Row {idx} translation failed after {args.max_retries} attempts. Couldn't convert to Dutch."
+    for retry in range(args.max_retries):
+        for dataset_keys in dataset.keys():
+            pd_df = pd.DataFrame(dataset[dataset_keys])
+            not_in_target_df = pd_df[
+                ~pd_df["translation"].apply(
+                    lambda x: is_language(x, model, target_language)
                 )
-                remove_indexes.append(idx)
+            ]
 
-        print("to_remove", remove_indexes)
-        dataset[dataset_keys] = dataset_values.filter(
-            lambda _, idx: idx not in remove_indexes, with_indices=True
-        )
+            prompts_not_in_target_language = not_in_target_df["prompt"].values.tolist()
+            indices_not_in_target_language = not_in_target_df.index.tolist()
+
+            if prompts_not_in_target_language:
+                # Retrieve translations
+                translations = asyncio.run(
+                    call_chatgpt_bulk(prompts_not_in_target_language, config)
+                )
+
+                # Assign translations back to the dataset at appropriate indices
+                for idx, translation in zip(
+                    indices_not_in_target_language, translations
+                ):
+                    pd_df.at[idx, "translation"] = translation
+
+                new_dataset = dataset[dataset_keys].remove_columns("translation")
+                dataset_with_new_translation = new_dataset.add_column(
+                    "translation", list(pd_df["translation"])
+                )
+                dataset[dataset_keys] = dataset_with_new_translation
+
+    for key in dataset.keys():
+        df = pd.DataFrame(dataset[key])
+
+        dataset_with_index = dataset[key].add_column("index", df.index.tolist())
+
+        indices_not_in_target_language = df[
+            ~df["translation"].apply(lambda x: is_language(x, model, target_language))
+        ].index.tolist()
+
+        dataset[key] = dataset_with_index.filter(
+            lambda example: example["index"] not in indices_not_in_target_language
+        ).remove_columns("index")
 
     return dataset
 
@@ -164,7 +132,7 @@ if __name__ == "__main__":
     dataset = check_language(args)
 
     # filter translations
-    dataset = filter_translations(args, dataset)
+    dataset = filter_bad_translations(dataset)
 
     # Save dataset to new location
     save_dataset(dataset, args)

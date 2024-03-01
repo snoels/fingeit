@@ -1,37 +1,9 @@
 import re
-import unicodedata as ud
-from typing import Optional, Tuple
 
-latin_letters = {}
-
-
-def word_indexes(text: str, lookup: str) -> Optional[Tuple[int, int]]:
-    """Will return begin and index of a word to lookup.
-
-    Params:
-        text: text to look into
-        lookup: word to look for
-    returns:
-        Start and end index of the word to look for
-    Raises:
-        AttributeError when the word is not found
-    """
-    result = re.search(r"\b(" + lookup + r")\b", text)
-    if result is None:
-        return None
-    return result.start(), result.end()
-
-
-def is_latin(unicode_chr: str):
-    try:
-        return latin_letters[unicode_chr]
-    except KeyError:
-        return latin_letters.setdefault(unicode_chr, "LATIN" in ud.name(unicode_chr))
-
-
-def only_roman_chars(unicode_text: str) -> bool:
-    return all(is_latin(uchr) for uchr in unicode_text if uchr.isalpha())
-
+INSTRUCTION_INPUT_RESPONSE_REGEX = re.compile(
+    r"(?=.*instruction:\s*)(?=.*input:\s*)(?=.*response:\s*)",
+    flags=re.IGNORECASE,
+)
 
 AI_NAMES_REGEX = re.compile(
     r"|".join(
@@ -99,8 +71,7 @@ APOLOGIES_REGEX = re.compile(
 )
 
 
-def filter_dataset(row, column_name: str) -> bool:
-    text = row[column_name]
+def filter_dataset(text: str) -> bool:
     if text is None:
         return False
 
@@ -126,25 +97,16 @@ def filter_dataset(row, column_name: str) -> bool:
     if APOLOGIES_REGEX.search(text):
         return False
 
-    if not only_roman_chars(text):
-        return False
     if len(text.split()) <= 3:
         return False
-    if not is_translation_valid(text):
+
+    if not INSTRUCTION_INPUT_RESPONSE_REGEX.search(text):
         return False
 
     return True
 
 
-def is_translation_valid(text: str) -> bool:
-    return all(
-        word_indexes(text, word) is not None
-        for word in ["instruction: ", "input: ", "response: "]
-    )
-
-
-def identify_language(row, column_name: str, model):
-    text = row[column_name]
+def is_language(text, model, target_language="nld"):
     if text is None:
         return False
 
@@ -152,4 +114,7 @@ def identify_language(row, column_name: str, model):
     text = " ".join(text.split())
 
     predictions = model.predict(text, k=1)
-    return predictions[0][0].replace("__label__", "").replace("_Latn", "")
+    return (
+        predictions[0][0].replace("__label__", "").replace("_Latn", "")
+        == target_language
+    )
