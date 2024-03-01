@@ -23,6 +23,7 @@ import asyncio
 import os
 import ssl
 from configparser import ConfigParser
+from os.path import abspath, dirname
 
 import aiohttp
 import certifi
@@ -61,8 +62,9 @@ def load_args():
 
 def load_config(args):
     """Loads configuration from config.ini file."""
+    directory = dirname(abspath(__file__))
     config = ConfigParser()
-    config.read("config.ini")
+    config.read(f"{directory}/config.ini")
 
     target_language = args.target_language
 
