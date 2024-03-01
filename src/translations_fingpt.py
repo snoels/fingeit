@@ -5,7 +5,6 @@ finred_re_translations = {
 ner_translations = {
     "Please extract entities and their types from the input sentence, entity types should be chosen from {person/organization/location}.": "Extraheer a.u.b. entiteiten en hun types uit de invoerzin, entiteitstypen moeten worden gekozen uit {persoon/organisatie/locatie}.",
 }
-
 ner_cls_translations = {
     "What is the entity type of": "Wat is het entiteitstype van",
     "With the input text as context, identify the entity type of": "Identificeer met de invoertekst als context het entiteitstype van",
@@ -30,7 +29,6 @@ ner_cls_translations = {
     "organization": "organisatie",
     "location": "locatie",
 }
-
 finred_general = {
     "product_or_material_produced": "product/materiaal geproduceerd",
     "product or material produced": "product/materiaal geproduceerd",
@@ -80,7 +78,6 @@ finred_general = {
     "location of formation": "locatie van ontstaan",
     "creator": "maker",
 }
-
 finred_translations = {
     'Given phrases that describe the relationship between two words/phrases as options, extract the word/phrase pair and the corresponding lexical relationship between them from the input text. The output format should be "relation1: word1, word2; relation2: word3, word4"': 'Gegeven zinnen die de relatie tussen twee woorden/zinnen beschrijven als opties, haal het woord/zinspaar en de overeenkomstige lexicale relatie tussen hen uit de invoertekst. het formaat van het resultaat moet zijn "relatie1: woord1, woord2; relatie2: woord3, woord4"',
     'Given the input sentence, please extract the subject and object containing a certain relation in the sentence according to the following relation types, in the format of "relation1: word1, word2; relation2: word3, word4". Relations include': 'Gegeven de invoerzin, gelieve het onderwerp en het object te extraheren dat een bepaalde relatie in de zin bevat volgens de volgende soorten relaties, in het formaat van "relatie1: woord1, woord2; relatie2: woord3, woord4". Relaties zijn onder andere',
@@ -91,7 +88,6 @@ finred_translations = {
     "What is the relationship between": "Wat is de relatie tussen",
     "in the context of the input sentence. Choose an answer from": "in de context van de invoerzin. Kies een antwoord uit",
 }
-
 finred_cls_translations = {
     "Utilize the input text as a context reference, choose the right relationship between": "Gebruik de invoertekst als contextreferentie, kies de juiste relatie tussen",
     "from the options": "uit de opties",
