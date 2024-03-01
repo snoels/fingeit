@@ -1,5 +1,6 @@
 import argparse
 import copy
+import time
 from functools import partial
 from typing import Any, Dict
 
@@ -146,7 +147,17 @@ def check_language(args: argparse.Namespace, target_language="nld"):
     return dataset
 
 
+def calculate_elapsed_time(start_time):
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    elapsed_minutes = int(elapsed_time / 60)
+    elapsed_seconds = int(elapsed_time % 60)
+    print(f"Total time: {elapsed_minutes} minutes and {elapsed_seconds} seconds")
+
+
 if __name__ == "__main__":
+    start_time = time.time()
+
     args = parse_args()
 
     # check languages
@@ -157,3 +168,6 @@ if __name__ == "__main__":
 
     # Save dataset to new location
     save_dataset(dataset, args)
+
+    # Calculate elapsed time
+    calculate_elapsed_time(start_time)
