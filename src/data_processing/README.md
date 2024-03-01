@@ -27,5 +27,8 @@ Firstly the instruction, input and output are set in Alpaca prompt as follows
 
 After that the prompts are translated using OpenAI GPT in an async fashion. Once translated the dataset is saved.
 
+Note:
+When we tried out of the box translations, it became clear that not everything was propperly translated. To mitigate the problem we did some preprocessing on the downloaded datasets. The preprocessing can be found in the [preprocessing notebook](../../notebooks/preprocess.ipynb)
+
 Run the script: \
 `python -m src.data_processing.data_downloade --db_location <path to store the data>`
