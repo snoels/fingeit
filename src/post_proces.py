@@ -4,7 +4,7 @@ import time
 
 import fasttext
 import pandas as pd
-from datasets import load_from_disk
+from datasets import Dataset, DatasetDict, load_from_disk
 from huggingface_hub import hf_hub_download
 from translation_service import call_chatgpt_bulk, load_config, save_dataset
 from utils import filter_dataset, is_language
@@ -26,93 +26,48 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def replace_options(example):
-    example["translation"] = example["translation"].replace("Options:", "Opties:")
-    return example
+def replace_options(text):
+    return text.replace("Options:", "Opties:")
 
 
-def post_process_wrong_transaltions(dataset):
-    for dataset_keys in dataset.keys():
-        dataset[dataset_keys] = dataset[dataset_keys].map(replace_options)
-
-    return dataset
+def post_process_wrong_transaltions(df):
+    df["translation"] = df["translation"].apply(replace_options)
+    return df
 
 
-def filter_bad_translations(dataset):
-    for key in dataset.keys():
-        df = pd.DataFrame(dataset[key])
-
-        dataset_with_index = dataset[key].add_column("index", df.index.tolist())
-
-        indices_of_bad_translations = df[
-            ~df["translation"].apply(lambda x: filter_dataset(x))
-        ].index.tolist()
-
-        print(indices_of_bad_translations)
-
-        dataset[key] = dataset_with_index.filter(
-            lambda example: example["index"] not in indices_of_bad_translations
-        ).remove_columns("index")
-
-    return dataset
+def filter_bad_translations(df):
+    indices_of_bad_translations = df[~df["translation"].apply(filter_dataset)].index
+    print(indices_of_bad_translations)
+    return df.drop(indices_of_bad_translations)
 
 
-def check_language(args: argparse.Namespace, target_language="nld"):
-    dataset = load_from_disk(args.db_location)
-
-    dataset = post_process_wrong_transaltions(dataset)
-
-    config = load_config(args)
-
+def check_language(config, df, target_language="nld"):
     model_path = hf_hub_download(
         repo_id="facebook/fasttext-language-identification", filename="model.bin"
     )
     model = fasttext.load_model(model_path)
 
     for retry in range(args.max_retries):
-        for dataset_keys in dataset.keys():
-            pd_df = pd.DataFrame(dataset[dataset_keys])
-            not_in_target_df = pd_df[
-                ~pd_df["translation"].apply(
-                    lambda x: is_language(x, model, target_language)
-                )
-            ]
-
-            prompts_not_in_target_language = not_in_target_df["prompt"].values.tolist()
-            indices_not_in_target_language = not_in_target_df.index.tolist()
-
-            if prompts_not_in_target_language:
-                # Retrieve translations
-                translations = asyncio.run(
-                    call_chatgpt_bulk(prompts_not_in_target_language, config)
-                )
-
-                # Assign translations back to the dataset at appropriate indices
-                for idx, translation in zip(
-                    indices_not_in_target_language, translations
-                ):
-                    pd_df.at[idx, "translation"] = translation
-
-                new_dataset = dataset[dataset_keys].remove_columns("translation")
-                dataset_with_new_translation = new_dataset.add_column(
-                    "translation", list(pd_df["translation"])
-                )
-                dataset[dataset_keys] = dataset_with_new_translation
-
-    for key in dataset.keys():
-        df = pd.DataFrame(dataset[key])
-
-        dataset_with_index = dataset[key].add_column("index", df.index.tolist())
-
-        indices_not_in_target_language = df[
+        not_in_target_df = df[
             ~df["translation"].apply(lambda x: is_language(x, model, target_language))
-        ].index.tolist()
+        ]
+        prompts_not_in_target_language = not_in_target_df["prompt"].tolist()
 
-        dataset[key] = dataset_with_index.filter(
-            lambda example: example["index"] not in indices_not_in_target_language
-        ).remove_columns("index")
+        if prompts_not_in_target_language:
+            translations = asyncio.run(
+                call_chatgpt_bulk(prompts_not_in_target_language, config)
+            )
+            for prompt, translation in zip(
+                prompts_not_in_target_language, translations
+            ):
+                df.loc[df["prompt"] == prompt, "translation"] = translation
 
-    return dataset
+    indices_not_in_target_language = df[
+        ~df["translation"].apply(lambda x: is_language(x, model, target_language))
+    ].index
+    df = df.drop(indices_not_in_target_language)
+
+    return df
 
 
 def calculate_elapsed_time(start_time):
@@ -127,15 +82,23 @@ if __name__ == "__main__":
     start_time = time.time()
 
     args = parse_args()
+    config = load_config(args)
 
-    # check languages
-    dataset = check_language(args)
+    dataset = load_from_disk(args.db_location)
 
-    # filter translations
-    dataset = filter_bad_translations(dataset)
+    new_ds = DatasetDict()
 
-    # Save dataset to new location
-    save_dataset(dataset, args)
+    for key in dataset.keys():
+        df = dataset[key].to_pandas()
 
-    # Calculate elapsed time
+        df = check_language(config, df, target_language="nld")
+
+        df = filter_bad_translations(df)
+
+        new_ds[key] = Dataset.from_pandas(df, preserve_index=False)
+
+    print(new_ds)
+
+    save_dataset(new_ds, args)
+
     calculate_elapsed_time(start_time)
