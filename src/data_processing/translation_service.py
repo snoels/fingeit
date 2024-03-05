@@ -1,23 +1,20 @@
 """
-This is a script for managing the translation of a dataset using the OpenAI Completion API. It's responsible for adding prompts to data, translating the data, and storing the translations in a new dataset. The script operates with the help of the 'translation_service.py' module and receives its configuration settings from 'config.ini'.
+This script facilitates the translation of a dataset using the OpenAI Completion API. It performs actions such as appending prompts to data, translating the data, and saving the translations in a new dataset. The script utilizes the 'translation_service.py' module and configures its settings from 'config.ini'.
 
-This script offers flexibility in terms of the translation prompts used and the location of the original and new datasets. The script is asynchronous, using Python's asyncio and aiohttp modules. This allows it to handle multiple translation requests at the same time, improving performance.
+Instructions:
 
-How to run the script:
-1. Navigate to the location of your code in the terminal. If you're using a virtual environment, make sure it's active.
-2. Use the following command structure to run the script:
+1. Launch the terminal and navigate to the directory of the script. If a virtual environment is being used, make sure to activate it.
+2. Run the script using the following command:
 
-    poetry run python translation_service.py --db_location "<location_of_database_to_be_translated>" --db_new_location "<location_to_save_translated_database>" --prompt_type "<type_of_prompt>" --target_language "<target_language>"
+    python -m src.data_processing.translation_service --db_location <path_to_data> --db_new_location <path_to_new_data> --prompt_type <prompt_type> --target_language <language>
 
-Replace "<location_of_database_to_be_translated>", "<location_to_save_translated_database>", "<type_of_prompt>", and "<target_language>" with your specific values.
+    Please replace:
 
-Command Example:
-
-    poetry run python translation_service.py --db_location "../data/FinGPT/fingpt-sentiment-train" --db_new_location "../data/FinGPT-translated" --prompt_type "alpaca_prompt" --target_language "Dutch"
-
-In the command example above, the script takes the dataset stored in the "../data/FinGPT/fingpt-sentiment-train" directory, translates it into Dutch using the "alpaca_prompt" prompt type, and stores the translated dataset in the "../data/FinGPT-translated" directory.
+    - <path_to_data> with the directory of the dataset to be translated
+    - <path_to_new_data> with the location for storing the translated dataset
+    - <prompt_type> with the type of translation prompt. Choices include 'alpaca_prompt' and 'alpaca_empty_input_prompt'
+    - <language> with the preferred translation language (default is 'Dutch').
 """
-
 import argparse
 import asyncio
 import os
@@ -72,7 +69,9 @@ def get_config(args):
     )
 
     prompt = config.get(sub_section, "prompt")
-    config.set(sub_section, "prompt", prompt.replace("<target_language>", target_language))
+    config.set(
+        sub_section, "prompt", prompt.replace("<target_language>", target_language)
+    )
     return config[sub_section]
 
 
