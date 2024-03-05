@@ -1,21 +1,19 @@
 import argparse
-import copy
-import os
-import shutil
-from functools import partial
-from typing import Any, Dict
-from uuid import uuid4
+import asyncio
+import time
 
 import fasttext
-from data_processing.translation_service import call_chatgpt_sync, load_config
-from datasets import load_from_disk
+import pandas as pd
+from datasets import Dataset, DatasetDict, load_from_disk
 from huggingface_hub import hf_hub_download
-from utils import filter_dataset, identify_language
+from translation_service import call_chatgpt_bulk, load_config, save_dataset
+from utils import filter_dataset, is_language
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--db_location", type=str, help="Database location")
+    parser.add_argument("--db_new_location", type=str, help="New database location")
     parser.add_argument(
         "--max_retries", type=int, default=3, help="Maximum number of allowed retries"
     )
@@ -28,134 +26,79 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def update_translation(
-    example: Dict[str, Any], idx: int, idx_to_change: int, new_value: Dict[str, Any]
-) -> Any:
-    return new_value if idx == idx_to_change else example
+def replace_options(text):
+    return text.replace("Options:", "Opties:")
 
 
-def filter_translations(args: argparse.Namespace):
-    dataset = load_from_disk(args.db_location)
-    config = load_config(args)
-
-    temporary_location = os.path.join(os.path.dirname(args.db_location), str(uuid4()))
-    os.makedirs(temporary_location, exist_ok=True)
-
-    for dataset_keys, dataset_values in dataset.items():
-        remove_indexes = []
-        for idx, row in enumerate(dataset_values):
-            row = copy.deepcopy(row)
-
-            if filter_dataset(row, "translation"):
-                continue
-
-            for retry in range(args.max_retries):
-                try:
-                    translation = call_chatgpt_sync(config, row["prompt"])
-                    row["translation"] = translation
-                    if translation and filter_dataset(row, "translation"):
-                        dataset[dataset_keys] = dataset_values.map(
-                            partial(
-                                update_translation, idx_to_change=idx, new_value=row
-                            ),
-                            with_indices=True,
-                        )
-                        print(
-                            f"Row {idx} translation succeeded after {retry + 1} attempts."
-                        )
-                        break
-
-                except Exception as e:
-                    print(
-                        f"Row {idx} translation failed on attempt {retry + 1}: {str(e)}"
-                    )
-            else:
-                print(
-                    f"Row {idx} translation failed after {args.max_retries} attempts."
-                )
-                remove_indexes.append(idx)
-
-        print("to_remove", remove_indexes)
-        dataset[dataset_keys] = dataset_values.filter(
-            lambda _, idx: idx not in remove_indexes, with_indices=True
-        )
-
-    # save the modified dataset to a temporary location
-    dataset.save_to_disk(temporary_location)
-
-    # replace the original dataset with the updated one from temporary location
-    shutil.rmtree(args.db_location)
-    shutil.move(temporary_location, args.db_location)
+def post_process_wrong_transaltions(df):
+    df["translation"] = df["translation"].apply(replace_options)
+    return df
 
 
-def check_language(args: argparse.Namespace, target_language="nld"):
-    dataset = load_from_disk(args.db_location)
-    config = load_config(args)
+def filter_bad_translations(df):
+    indices_of_bad_translations = df[~df["translation"].apply(filter_dataset)].index
+    print(indices_of_bad_translations)
+    return df.drop(indices_of_bad_translations)
 
-    temporary_location = os.path.join(os.path.dirname(args.db_location), str(uuid4()))
-    os.makedirs(temporary_location, exist_ok=True)
 
+def check_language(config, df, target_language="nld"):
     model_path = hf_hub_download(
         repo_id="facebook/fasttext-language-identification", filename="model.bin"
     )
     model = fasttext.load_model(model_path)
 
-    for dataset_keys, dataset_values in dataset.items():
-        remove_indexes = []
-        for idx, row in enumerate(dataset_values):
-            row = copy.deepcopy(row)
+    for retry in range(args.max_retries):
+        not_in_target_df = df[
+            ~df["translation"].apply(lambda x: is_language(x, model, target_language))
+        ]
+        prompts_not_in_target_language = not_in_target_df["prompt"].tolist()
 
-            if identify_language(row, "translation", model) == target_language:
-                continue
+        if prompts_not_in_target_language:
+            translations = asyncio.run(
+                call_chatgpt_bulk(prompts_not_in_target_language, config)
+            )
+            for prompt, translation in zip(
+                prompts_not_in_target_language, translations
+            ):
+                df.loc[df["prompt"] == prompt, "translation"] = translation
 
-            for retry in range(args.max_retries):
-                try:
-                    translation = call_chatgpt_sync(config, row["prompt"])
-                    row["translation"] = translation
-                    if (
-                        translation
-                        and identify_language(row, "translation", model)
-                        == target_language
-                    ):
-                        dataset[dataset_keys] = dataset_values.map(
-                            partial(
-                                update_translation, idx_to_change=idx, new_value=row
-                            ),
-                            with_indices=True,
-                        )
-                        print(
-                            f"Row {idx} translation succeeded after {retry + 1} attempts. The translation has been changed to Dutch."
-                        )
-                        break
+    indices_not_in_target_language = df[
+        ~df["translation"].apply(lambda x: is_language(x, model, target_language))
+    ].index
+    df = df.drop(indices_not_in_target_language)
 
-                except Exception as e:
-                    print(
-                        f"Row {idx} translation failed on attempt {retry + 1}: {str(e)}"
-                    )
-            else:
-                print(
-                    f"Row {idx} translation failed after {args.max_retries} attempts. Couldn't convert to Dutch."
-                )
-                remove_indexes.append(idx)
+    return df
 
-        print("to_remove", remove_indexes)
-        dataset[dataset_keys] = dataset_values.filter(
-            lambda _, idx: idx not in remove_indexes, with_indices=True
-        )
 
-    # save the modified dataset to a temporary location
-    dataset.save_to_disk(temporary_location)
-
-    # replace the original dataset with the updated one from temporary location
-    shutil.rmtree(args.db_location)
-    shutil.move(temporary_location, args.db_location)
+def calculate_elapsed_time(start_time):
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    elapsed_minutes = int(elapsed_time / 60)
+    elapsed_seconds = int(elapsed_time % 60)
+    print(f"Total time: {elapsed_minutes} minutes and {elapsed_seconds} seconds")
 
 
 if __name__ == "__main__":
+    start_time = time.time()
+
     args = parse_args()
+    config = load_config(args)
 
-    # filter translations
-    filter_translations(args)
+    dataset = load_from_disk(args.db_location)
 
-    # check languages
-    check_language(args)
+    new_ds = DatasetDict()
+
+    for key in dataset.keys():
+        df = dataset[key].to_pandas()
+
+        df = check_language(config, df, target_language="nld")
+
+        df = filter_bad_translations(df)
+
+        new_ds[key] = Dataset.from_pandas(df, preserve_index=False)
+
+    print(new_ds)
+
+    save_dataset(new_ds, args)
+
+    calculate_elapsed_time(start_time)
