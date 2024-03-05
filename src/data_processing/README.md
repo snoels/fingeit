@@ -40,3 +40,7 @@ The [post_process.py](./post_process.py) script performs post-processing on the 
 To run the script from your terminal:
 
 `python -m src.data_processing.post_process --db_location <path to data> --db_new_location <path to new data> --max_retries <number of attempts> --target_language <language>`
+
+## Data publishing
+
+<continue writing here>
