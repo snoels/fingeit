@@ -7,6 +7,7 @@ GEITje is een financieel Nederlandstalig groot open taalmodel met 7 miljard para
 ![DALL·E 3: "Create a logo for a Dutch large language model's Github readme. Incorporate a hyper realistic cute baby goat painting on a Dutch landscape with a few finance skyscrapers. The cute baby goat wears a business suit and has a financial background."](./resources/fingeitje-logo.jpeg)
 
 ## Getting started
-1. Run [data_downloader](./src/data_downloader.py) to download the original dataset
-2. Run [translation service](./src/translation_service.py) to translate the original dataset
-3. Run [translation formatter](./src/translation_formatter.py) to format the translation into the original dataset format
+1. Run [data_downloader](./src/data_processing/data_downloader.py) to download the original dataset
+2. Run [translation service](./src/data_processing/translation_service.py) to translate the original dataset
+3. Run [post processing service](./src/data_processing/post_process.py) to post process the translated dataset
+4. Run [translation formatter](./src/data_processing/translation_formatter.py) to format the translation into the original dataset format
