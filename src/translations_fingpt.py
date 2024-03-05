@@ -105,7 +105,7 @@ finred_cls_translations = {
 }
 
 headline_translations = {
-    "Does the news headline talk about price": "Gaat de krantenkop over prijs",
+    "Does the news headline talk about price": "Gaat de krantenkop over de prijs",
     "Does the news headline talk about price going up": "Gaat de krantenkop over de prijs die stijgt",
     "Does the news headline talk about price staying constant": "Gaat de krantenkop over de prijs die constant blijft",
     "Does the news headline talk about price going down": "Gaat de krantenkop over de prijs die daalt",
