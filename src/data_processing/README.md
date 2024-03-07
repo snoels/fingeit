@@ -41,6 +41,20 @@ To run the script from your terminal:
 
 `python -m src.data_processing.post_process --db_location <path to data> --db_new_location <path to new data> --max_retries <number of attempts> --target_language <language>`
 
-## Data publishing
+## Data Reformatting
 
-<continue writing here>
+The purpose of the [translation_formatter.py](./translation_formatter.py) script is to reformat the translated datasets. This script ensures that the translated content is correctly distributed across the instruction, input, and output columns.The completed script can be found [here](./translation_formatter.py). 
+
+Run the script: \
+
+`python -m src.data_processing.translation_formatter --db_location <path to data> --db_new_location <path to new data>`
+
+## Final step
+
+The translated data is now ready for further data processing and modeling tasks in downstream analysis and model training.
+
+# Contribution
+
+Feel free to contribute towards the development and maintenance of this project. Also, you could feature requests and enhance our documentation.
+
+Any contributions you make will be greatly appreciated. We strongly encourage feedback and recommendations.

@@ -5,39 +5,44 @@
 import argparse
 
 from datasets import Dataset, DatasetDict, load_from_disk
-from utils import word_indexes
+
+from src.data_processing.translation_service import save_dataset
 
 
-def split_into_parts(text: str) -> tuple[str, str, str]:
-    """Extracts the instruction, input and output from a Lama prompt.
-    Params:
-        text: text as formatted for a Lama prompt
-    Returns:
-        In order: instruction, input, output
-    Raises:
-        AttributeError when the word is not found
-    """
-    _, instruction_end = word_indexes(text, "instruction")
-    input_start, input_end = word_indexes(text, "input")
-    response_start, response_end = word_indexes(text, "response")
+def split_translation(text):
+    if "input:" in text:
+        text, _, _reponse = text.partition("response:")
+        text, _, _input = text.partition("input:")
+        text, _, _instruction = text.partition("instruction:")
+    else:
+        _input = ""
+        text, _, _reponse = text.partition("response:")
+        text, _, _instruction = text.partition("instruction:")
 
-    instruction = text[instruction_end + 1 : input_start].strip()
-    input_ = text[input_end + 1 : response_start].strip()
-    response = text[response_end + 1 :].strip()
-
-    return instruction, input_, response
+    return _instruction.strip(), _input.strip(), _reponse.strip()
 
 
 def update_instruction_input_response(x):
     """Update the instruction, input and output columns based on the translation column."""
-    try:
-        instruction, _input, response = split_into_parts(x["translation"])
-        x["instruction"] = instruction
-        x["input"] = _input
-        x["output"] = response
-    except Exception:
-        pass
+    _instruction, _input, _response = split_translation(x["translation"])
+    x["instruction"] = _instruction
+    x["input"] = _input
+    x["output"] = _response
+
     return x
+
+
+def format_datasetdict(original: DatasetDict):
+    """Update all datasets with the translation of input, output and instruction."""
+    new = DatasetDict()
+    for key in original.keys():
+        print(f"\t> Formatting {key} dataset")
+        dataset = original[key]
+        reformatted_dataset = dataset.map(update_instruction_input_response).map(
+            remove_columns=["translation", "prompt"]
+        )
+        new[key] = Dataset.from_pandas(reformatted_dataset.to_pandas())
+    return new
 
 
 def parse_args():
@@ -48,30 +53,6 @@ def parse_args():
     return parser.parse_args()
 
 
-def format_datasetdict(original: DatasetDict) -> DatasetDict:
-    """Update all datasets with the translation of input, output and instruction.
-
-    Given that the translation is property in the dataset formatted as a Lama prompt,
-    it will extract the translated input, output and instruction from the lama prompt translation and
-    update it in the datasets
-
-    Params:
-        original: datasetdict containing datasets that need to be updated
-    returns:
-        the updated datsetdict
-    """
-
-    new = DatasetDict()
-    for key in original.keys():
-        print(f"\t> Formatting {key} dataset")
-        dataset = original[key]
-        dataset = dataset.map(update_instruction_input_response).map(
-            remove_columns=["translation", "prompt"]
-        )
-        new[key] = Dataset.from_pandas(dataset.to_pandas())
-    return new
-
-
 def main():
     args = parse_args()
     print("> Loading dataset")
@@ -79,9 +60,7 @@ def main():
     print("> Formatting dataset")
     new = format_datasetdict(original)
     print("> Saving dataset")
-    # for key in original.keys():
-    #     new[key].save_to_disk(args.db_new_location + f"/{key}")
-    new.save_to_disk(args.db_new_location)
+    save_dataset(new, args)
 
 
 if __name__ == "__main__":
