@@ -1,4 +1,4 @@
 data/*
 *.pyc
-*.ipynb
+test.ipynb
 !preprocess.ipynb
