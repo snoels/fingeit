@@ -105,14 +105,20 @@ finred_cls_translations = {
 }
 
 headline_translations = {
-    "Does the news headline talk about price": "Gaat de krantenkop over prijs",
-    "Does the news headline talk about price going up": "Gaat de krantenkop over de prijs die stijgt",
+    "Does the news headline talk about price": "Gaat de krantenkop over de prijs",
+    "Does the news headline talk about price going up": "Gaat de krantenkop over de prijs die omhoog gaat",
     "Does the news headline talk about price staying constant": "Gaat de krantenkop over de prijs die constant blijft",
-    "Does the news headline talk about price going down": "Gaat de krantenkop over de prijs die daalt",
+    "Does the news headline talk about price going down": "Gaat de krantenkop over de prijs die omlaag gaat",
     "Does the news headline talk about price in the past": "Gaat de krantenkop over de prijs in het verleden",
     "Does the news headline talk about price in the future": "Gaat de krantenkop over de prijs in de toekomst",
-    "Does the news headline talk about a general event (apart from prices) in the past": "Gaat de krantenkop over een algemene gebeurtenis (afgezien van prijzen) in het verleden",
-    "Does the news headline talk about a general event (apart from prices) in the future": "Gaat de krantenkop over een algemene gebeurtenis (afgezien van prijzen) in de toekomst",
+    "Does the news headline talk about a general event (apart from prices) in the past": "Gaat de krantenkop over een algemene gebeurtenis (afgezien van de prijzen) in het verleden",
+    "Does the news headline talk about a general event (apart from prices) in the future": "Gaat de krantenkop over een algemene gebeurtenis (afgezien van de prijzen) in de toekomst",
     "Does the news headline compare gold with any other asset": "Vergelijkt de krantenkop goud met een ander actief",
     "Please choose an answer from {Yes/No}": "Kies alstublieft een antwoord uit {Ja/Nee}",
+}
+
+sentiment_translations = {
+    "What is the sentiment of this tweet? Please choose an answer from {negative/neutral/positive}.": "Wat is het sentiment van deze tweet? Kies een antwoord uit {negatief/neutraal/positief}.",
+    "What is the sentiment of this news? Please choose an answer from {negative/neutral/positive}.": "Wat is het sentiment van dit nieuws? Kies een antwoord uit {negatief/neutraal/positief}.",
+    "What is the sentiment of this news? Please choose an answer from {strong negative/moderately negative/mildly negative/neutral/mildly positive/moderately positive/strong positive}.": "Wat is het sentiment van dit nieuws? Kies een antwoord uit {sterk negatief/matig negatief/mild negatief/neutraal/mild positief/matig positief/sterk positief}.",
 }
