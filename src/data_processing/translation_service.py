@@ -20,7 +20,7 @@ import asyncio
 import os
 
 import pandas as pd
-from datasets import load_from_disk
+from datasets import Dataset, DatasetDict, load_from_disk
 
 from src.data_processing.config import load_config
 from src.data_processing.prompters import AlpacaEmptyInputPrompter, AlpacaPrompter
@@ -105,18 +105,20 @@ def retry_translate_and_add_response(dataset, translator: ChatGptTranslator):
 
 def translate_and_add_response(dataset, translator: ChatGptTranslator):
     """Translates dataset from prompts and adds response to dataset."""
+
+    translated_ds = DatasetDict()
+
     for dataset_keys in dataset.keys():
         pd_df = pd.DataFrame(dataset[dataset_keys])
         prompts = list(pd_df["prompt"])
 
         responses = asyncio.run(translator.call_chatgpt_bulk(prompts))
 
-        dataset_with_translation = dataset[dataset_keys].add_column(
-            "translation", responses
-        )
-        dataset[dataset_keys] = dataset_with_translation
+        pd_df["translation"] = responses
 
-    return dataset
+        translated_ds[dataset_keys] = Dataset.from_pandas(pd_df, preserve_index=False)
+
+    return translated_ds
 
 
 def save_dataset(dataset, args):

@@ -1,4 +1,5 @@
 data/*
 *.pyc
-test.ipynb
+*.ipynb
 !preprocess.ipynb
+!combine_datasets.ipynb
