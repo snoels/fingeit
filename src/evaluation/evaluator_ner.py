@@ -1,0 +1,80 @@
+import re
+
+import pandas as pd
+from datasets import Dataset
+from scripts.evaluation.evaluator_base import BaseEvaluator, Evaluation, Metric
+from seqeval.metrics import accuracy_score, classification_report, f1_score
+
+
+class NEREvaluator(BaseEvaluator):
+    def __init__(self):
+        super().__init__()
+        self.ent_dict = {
+            "PER": "persoon",
+            "ORG": "organisatie",
+            "LOC": "locatie",
+        }
+        self.ent_dict_rev = {v: k for k, v in self.ent_dict.items()}
+
+    def _cvt_text_to_pred(self, tokens, text):
+        preds = ["O" for _ in range(len(tokens))]
+        for pred_txt in text.lower().strip(".").split(","):
+            pred_match = re.match(r"^(.*) is een? (.*)$", pred_txt)
+            if pred_match is not None:
+                entity, entity_type = (
+                    pred_match.group(1).strip(),
+                    pred_match.group(2).strip(),
+                )
+                entity_pred = self.ent_dict_rev.get(entity_type, "O")
+                entity_tokens = entity.split()
+
+                n = len(entity_tokens)
+                for i in range(len(tokens) - n + 1):
+                    if (
+                        tokens[i : i + n] == entity_tokens
+                        and preds[i : i + n] == ["O"] * n
+                    ):
+                        preds[i : i + n] = ["B-" + entity_pred] + [
+                            "I-" + entity_pred
+                        ] * (n - 1)
+                        break
+            else:
+                print(pred_txt)
+
+        return preds
+
+    def _map_output(self, row):
+        tokens = row["input"].lower().split()
+        label = self._cvt_text_to_pred(tokens, row["output"])
+        pred = self._cvt_text_to_pred(tokens, row["out_text"])
+        return pd.Series({"label": label, "pred": pred})
+
+    def _evaluate(self, dataset: Dataset) -> Evaluation:
+        print("test")
+        df = dataset.to_pandas()
+        eval_df = df.apply(self._map_output, axis=1)
+
+        return Evaluation(
+            df=eval_df,
+            metrics=[
+                Metric(
+                    name="Accuracy",
+                    value=accuracy_score(eval_df["label"], eval_df["pred"]),
+                ),
+                Metric(
+                    name="F1",
+                    value=f1_score(eval_df["label"], eval_df["pred"]),
+                ),
+                Metric(
+                    name="Classification Report",
+                    value=classification_report(eval_df["label"], eval_df["pred"]),
+                ),
+            ],
+        )
+
+
+if __name__ == "__main__":
+    evaluation = NEREvaluator("models/fingeitje").evaluate(
+        "ice-hands/finred-messages", "test"
+    )
+    print(evaluation)
