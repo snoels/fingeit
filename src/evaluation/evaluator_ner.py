@@ -2,13 +2,14 @@ import re
 
 import pandas as pd
 from datasets import Dataset
-from scripts.evaluation.evaluator_base import BaseEvaluator, Evaluation, Metric
 from seqeval.metrics import accuracy_score, classification_report, f1_score
+
+from src.evaluation.evaluator_base import BaseEvaluator, Evaluation, Metric
 
 
 class NEREvaluator(BaseEvaluator):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, model_path):
+        super().__init__(model_path)
         self.ent_dict = {
             "PER": "persoon",
             "ORG": "organisatie",
@@ -39,18 +40,18 @@ class NEREvaluator(BaseEvaluator):
                         ] * (n - 1)
                         break
             else:
-                print(pred_txt)
+                continue
+                # print(pred_txt)
 
         return preds
 
     def _map_output(self, row):
         tokens = row["input"].lower().split()
-        label = self._cvt_text_to_pred(tokens, row["output"])
-        pred = self._cvt_text_to_pred(tokens, row["out_text"])
+        label = self._cvt_text_to_pred(tokens, row[self.GROUND_TRUTH_COLUMN_NAME])
+        pred = self._cvt_text_to_pred(tokens, row[self.PREDICTION_COLUMN_NAME])
         return pd.Series({"label": label, "pred": pred})
 
     def _evaluate(self, dataset: Dataset) -> Evaluation:
-        print("test")
         df = dataset.to_pandas()
         eval_df = df.apply(self._map_output, axis=1)
 

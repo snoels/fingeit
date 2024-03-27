@@ -2,8 +2,9 @@ import re
 
 import pandas as pd
 from datasets import Dataset
-from scripts.evaluation.evaluator_base import BaseEvaluator, Evaluation, Metric
 from sklearn.metrics import accuracy_score
+
+from src.evaluation.evaluator_base import BaseEvaluator, Evaluation, Metric
 
 
 class ConvFinQaEvaluator(BaseEvaluator):
@@ -25,30 +26,35 @@ class ConvFinQaEvaluator(BaseEvaluator):
         pred = self._cvt_text_to_pred(feature[self.PREDICTION_COLUMN_NAME])
         return pd.Series({"label": label, "pred": pred})
 
-    def convert_to_float(s):
+    def convert_to_float(self, s):
         s = str(s)
         if len(re.findall("\.", s)) == 1 and len(re.findall(",", s)) > 1:
-            return str(s.replace(",", ""))
+            return str(float(s.replace(",", "")))
         elif len(re.findall(",", s)) == 1 and len(re.findall("\.", s)) > 1:
-            return str(s.replace(".", ""))
+            return str(float(s.replace(".", "")))
         elif len(re.findall("\,", s)) == 1:
-            return str(s.replace(",", "."))
+            return str(float(s.replace(",", ".")))
         elif len(re.findall("\.", s)) == 1:
-            return str(s)
+            return str(float(s))
         else:
-            return str(s)
+            return str(float(s))
 
     def _evaluate(self, dataset: Dataset) -> Evaluation:
         df = dataset.to_pandas()
         eval_df = df.apply(self._map_output, axis=1)
         eval_df = eval_df[eval_df["pred"] != "nan"]
 
-        label = [self.convert_to_float(d) for d in eval_df["label"]]
-        pred = [self.convert_to_float(d) for d in eval_df["pred"]]
+        eval_df["label"] = [self.convert_to_float(d) for d in eval_df["label"]]
+        eval_df["pred"] = [self.convert_to_float(d) for d in eval_df["pred"]]
 
         return Evaluation(
             df=eval_df,
-            metrics=[Metric(name="Accuracy", value=accuracy_score(label, pred))],
+            metrics=[
+                Metric(
+                    name="Accuracy",
+                    value=accuracy_score(eval_df["label"], eval_df["pred"]),
+                )
+            ],
         )
 
 

@@ -32,7 +32,7 @@ def get_args():
     return parser.parse_args()
 
 
-def add_messages(record):
+def add_train_messages(record):
     instruction = record["instruction"]
     input_ = record["input"]
     record["messages"] = [
@@ -53,6 +53,26 @@ def add_messages(record):
     return record
 
 
+def add_prediction_messages(record):
+    instruction = record["instruction"]
+    input_ = record["input"]
+    record["messages"] = [
+        {
+            "content": "Je bent een behulpzame financiële assistent. help met zorg, respect en waarheid. Reageer met de grootste nuttigheid maar wel veilig. Vermijd schadelijke, onethische, bevooroordeelde of negatieve inhoud. Zorg ervoor dat antwoorden eerlijkheid en positiviteit promoten.",
+            "role": "system",
+        },
+        {
+            "content": ALPACA_INTROMESSAGE_INPUT.format(
+                instruction=instruction, input=input_
+            )
+            if input_
+            else ALPACA_INTROMESSAGE_NO_INPUT.format(instruction=instruction),
+            "role": "user",
+        },
+    ]
+    return record
+
+
 def process_datasets(args):
     dataset_path = os.path.abspath(f"{args.db_location}")
 
@@ -60,7 +80,7 @@ def process_datasets(args):
     new = DatasetDict()
 
     for key in ds.keys():
-        ds_w_message = ds[key].map(add_messages)
+        ds_w_message = ds[key].map(add_train_messages)
         new[key] = ds_w_message.shuffle(seed=42)
 
     save_dataset(new, args)

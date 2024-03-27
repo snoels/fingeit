@@ -1,5 +1,6 @@
 data/*
 *.pyc
 *.ipynb
-!preprocess.ipynb
+!data_processing.ipynb
 !combine_datasets.ipynb
+!evaluation.ipynb
