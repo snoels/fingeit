@@ -7,8 +7,24 @@ from src.evaluation.evaluator_base import BaseEvaluator, Evaluation, Metric
 
 class HeadlineEvaluator(BaseEvaluator):
     def _map_output(self, row):
-        pred = 1 if "ja" in row[self.PREDICTION_COLUMN_NAME].lower() else 0
-        label = 1 if "ja" in row[self.GROUND_TRUTH_COLUMN_NAME].lower() else 0
+        label = pred = None
+
+        if "ja" in row[self.GROUND_TRUTH_COLUMN_NAME].lower():
+            label = 1
+        elif "nee" in row[self.GROUND_TRUTH_COLUMN_NAME].lower():
+            label = 0
+
+        if "ja" in row[self.PREDICTION_COLUMN_NAME].lower():
+            pred = 1
+        elif "nee" in row[self.PREDICTION_COLUMN_NAME].lower():
+            pred = 0
+
+        if "unknown" in row[self.PREDICTION_COLUMN_NAME].lower():
+            pred = 1 - label
+
+        if pred is None:
+            pred = 1 - label
+
         return pd.Series({"label": label, "pred": pred})
 
     def _evaluate(self, dataset: Dataset) -> Evaluation:
