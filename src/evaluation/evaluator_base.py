@@ -32,13 +32,16 @@ class BaseEvaluator:
 
     def __init__(
         self,
-        model_path: str,
+        model_path: str | None = None,
         remove_temp_file: bool | None = None,
         temp_storage_file: str | None = None,
     ) -> None:
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            model_path, trust_remote_code=True
-        )
+        if model_path is not None:
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                model_path, trust_remote_code=True
+            )
+        else:
+            self.tokenizer = None
         self.model_path = model_path
         self._log_interval = 20
         self.file_access = FileAccess(temp_storage_file)

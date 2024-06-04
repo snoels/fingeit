@@ -2,14 +2,13 @@ import re
 
 import pandas as pd
 from datasets import Dataset
-from seqeval.metrics import accuracy_score, classification_report, f1_score
+from seqeval.metrics import classification_report, f1_score
 
 from src.evaluation.evaluator_base import BaseEvaluator, Evaluation, Metric
 
 
 class NEREvaluator(BaseEvaluator):
-    def __init__(self, model_path):
-        super().__init__(model_path)
+    def __init__(self):
         self.ent_dict = {
             "PER": "persoon",
             "ORG": "organisatie",
@@ -33,7 +32,7 @@ class NEREvaluator(BaseEvaluator):
                 for i in range(len(tokens) - n + 1):
                     if (
                         tokens[i : i + n] == entity_tokens
-                        and preds[i : i + n] == ["O"] * n
+                        and preds[i : i + n] == ["O"] * n and entity_pred in self.ent_dict.keys()
                     ):
                         preds[i : i + n] = ["B-" + entity_pred] + [
                             "I-" + entity_pred
@@ -41,7 +40,6 @@ class NEREvaluator(BaseEvaluator):
                         break
             else:
                 continue
-                # print(pred_txt)
 
         return preds
 
@@ -58,10 +56,6 @@ class NEREvaluator(BaseEvaluator):
         return Evaluation(
             df=eval_df,
             metrics=[
-                Metric(
-                    name="Accuracy",
-                    value=accuracy_score(eval_df["label"], eval_df["pred"]),
-                ),
                 Metric(
                     name="F1",
                     value=f1_score(eval_df["label"], eval_df["pred"]),
