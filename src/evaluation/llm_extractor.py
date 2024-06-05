@@ -57,7 +57,7 @@ def generate_message_ner(instruction: str, prediction: str):
 
     system = (
         "You are a helpful assistant specialized in formatting a message in the right format:"
-        " answer the question by answering in the following format: [entity] is een [type], [entity] is a [type], ..."
+        " answer the question by answering in the following format: [entity] is een [type], [entity] is een [type], ..."
     )
 
     instruction = "Please extract entities and their types from the input sentence, entity types must be chosen from {persoon/organisatie/locatie}."

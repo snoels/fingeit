@@ -8,12 +8,22 @@ from src.evaluation.evaluator_base import BaseEvaluator, Evaluation, Metric
 
 
 class SentimentEvaluator(BaseEvaluator):
-    def _change_target(self, x: str) -> Literal["positief", "negatief", "neutraal"]:
-        if "positief" in x or "Positief" in x:
-            return "positief"
-        elif "negatief" in x or "Negatief" in x:
-            return "negatief"
-        return "neutraal"
+    def __init__(self, language='NL'):
+        self.language = language
+
+    def _change_target(self, x: str) -> Literal["positief", "negatief", "neutraal", "positive", "negative", "neutral"]:
+        if self.language == 'EN':
+          if "positive" in x or "Positive" in x:
+              return "positive"
+          elif "negative" in x or "Negative" in x:
+              return "negative"
+          return "neutral"
+        else:
+          if "positief" in x or "Positief" in x:
+              return "positief"
+          elif "negatief" in x or "Negatief" in x:
+              return "negatief"
+          return "neutraal"
 
     def _evaluate(self, dataset: Dataset) -> Evaluation:
         df = dataset.to_pandas()
@@ -41,9 +51,11 @@ class SentimentEvaluator(BaseEvaluator):
             ],
         )
 
-
 if __name__ == "__main__":
-    evaluation = SentimentEvaluator("models/fingeitje").evaluate(
-        "ice-hands/finred-messages", "test"
-    )
+    evaluator = SentimentEvaluator("models/fingeitje")
+    evaluation = evaluator.evaluate("ice-hands/finred-messages", "test")
+    print(evaluation)
+
+    evaluator = SentimentEvaluator('EN')
+    evaluation = evaluator.evaluate("ice-hands/finred-messages", "test")
     print(evaluation)

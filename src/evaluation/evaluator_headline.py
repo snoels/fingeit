@@ -4,19 +4,29 @@ from sklearn.metrics import accuracy_score, f1_score
 
 from src.evaluation.evaluator_base import BaseEvaluator, Evaluation, Metric
 
-
 class HeadlineEvaluator(BaseEvaluator):
+    
+    def __init__(self, language = 'NL'):
+        self.language = language
+
     def _map_output(self, row):
         label = pred = None
 
-        if "ja" in row[self.GROUND_TRUTH_COLUMN_NAME].lower():
+        if self.language == "EN":
+            true_val = "yes"
+            false_val = "no"
+        else:
+            true_val = "ja"
+            false_val = "nee"
+
+        if true_val in row[self.GROUND_TRUTH_COLUMN_NAME].lower():
             label = 1
-        elif "nee" in row[self.GROUND_TRUTH_COLUMN_NAME].lower():
+        elif false_val in row[self.GROUND_TRUTH_COLUMN_NAME].lower():
             label = 0
 
-        if "ja" in row[self.PREDICTION_COLUMN_NAME].lower():
+        if true_val in row[self.PREDICTION_COLUMN_NAME].lower():
             pred = 1
-        elif "nee" in row[self.PREDICTION_COLUMN_NAME].lower():
+        elif false_val in row[self.PREDICTION_COLUMN_NAME].lower():
             pred = 0
 
         if "unknown" in row[self.PREDICTION_COLUMN_NAME].lower():
@@ -44,9 +54,8 @@ class HeadlineEvaluator(BaseEvaluator):
             ],
         )
 
-
 if __name__ == "__main__":
-    evaluation = HeadlineEvaluator("models/fingeitje").evaluate(
+    evaluation = HeadlineEvaluator("models/fingeitje", "EN").evaluate(
         "ice-hands/finred-messages", "test"
     )
     print(evaluation)

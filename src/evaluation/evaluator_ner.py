@@ -8,18 +8,28 @@ from src.evaluation.evaluator_base import BaseEvaluator, Evaluation, Metric
 
 
 class NEREvaluator(BaseEvaluator):
-    def __init__(self):
-        self.ent_dict = {
-            "PER": "persoon",
-            "ORG": "organisatie",
-            "LOC": "locatie",
-        }
+    def __init__(self, language='NL'):
+        if language == 'EN':
+            self.ent_dict = {
+                "PER": "person",
+                "ORG": "organisation",
+                "LOC": "location",
+            }
+            self.lang_match_re = r"^(.*) is a? (.*)$"
+        else:
+            self.ent_dict = {
+                "PER": "persoon",
+                "ORG": "organisatie",
+                "LOC": "locatie",
+            }
+            self.lang_match_re = r"^(.*) is een? (.*)$"
+        
         self.ent_dict_rev = {v: k for k, v in self.ent_dict.items()}
 
     def _cvt_text_to_pred(self, tokens, text):
         preds = ["O" for _ in range(len(tokens))]
         for pred_txt in text.lower().strip(".").split(","):
-            pred_match = re.match(r"^(.*) is een? (.*)$", pred_txt)
+            pred_match = re.match(self.lang_match_re, pred_txt)
             if pred_match is not None:
                 entity, entity_type = (
                     pred_match.group(1).strip(),
@@ -66,10 +76,14 @@ class NEREvaluator(BaseEvaluator):
                 ),
             ],
         )
-
-
+        
 if __name__ == "__main__":
-    evaluation = NEREvaluator("models/fingeitje").evaluate(
+    evaluation = NEREvaluator(language="EN").evaluate(
+        "ice-hands/finred-messages", "test"
+    )
+    print(evaluation)
+
+    evaluation = NEREvaluator(language="NON-EN").evaluate(
         "ice-hands/finred-messages", "test"
     )
     print(evaluation)

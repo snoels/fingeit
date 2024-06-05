@@ -5,42 +5,77 @@ from sklearn.metrics import accuracy_score, f1_score
 
 from src.evaluation.evaluator_base import BaseEvaluator, Evaluation, Metric
 
-relations = [
-    "product/materiaal geproduceerd",
-    "fabrikant",
-    "verdeeld door",
-    "industrie",
-    "positie bekleed",
-    "originele omroep",
-    "bezeten door",
-    "opgericht door",
-    "distributieformaat",
-    "hoofdkantoorlocatie",
-    "effectenbeurs",
-    "valuta",
-    "moederorganisatie",
-    "chief executive officer",
-    "directeur/manager",
-    "eigenaar van",
-    "operator",
-    "lid van",
-    "werkgever",
-    "voorzitter",
-    "platform",
-    "dochteronderneming",
-    "rechtsvorm",
-    "uitgever",
-    "ontwikkelaar",
-    "merk",
-    "bedrijfsdivisie",
-    "locatie van ontstaan",
-    "maker",
-]
-
-
 class FinRedEvaluator(BaseEvaluator):
+    relations = {
+        'EN': [
+        "product_or_material_produced",
+        "manufacturer",
+        "distributed_by",
+        "industry",
+        "position_held",
+        "original_broadcaster",
+        "owned_by",
+        "founded_by",
+        "distribution_format",
+        "headquarters_location",
+        "stock_exchange",
+        "currency",
+        "parent_organization",
+        "chief_executive_officer",
+        "director_/_manager",
+        "owner_of",
+        "operator",
+        "member_of",
+        "employer",
+        "chairperson",
+        "platform",
+        "subsidiary",
+        "legal_form",
+        "publisher",
+        "developer",
+        "brand",
+        "business_division",
+        "location_of_formation",
+        "creator",
+        ],
+        'NL': [
+        "product/materiaal geproduceerd",
+        "fabrikant",
+        "verdeeld door",
+        "industrie",
+        "positie bekleed",
+        "originele omroep",
+        "bezeten door",
+        "opgericht door",
+        "distributieformaat",
+        "hoofdkantoorlocatie",
+        "effectenbeurs",
+        "valuta",
+        "moederorganisatie",
+        "chief executive officer",
+        "directeur/manager",
+        "eigenaar van",
+        "operator",
+        "lid van",
+        "werkgever",
+        "voorzitter",
+        "platform",
+        "dochteronderneming",
+        "rechtsvorm",
+        "uitgever",
+        "ontwikkelaar",
+        "merk",
+        "bedrijfsdivisie",
+        "locatie van ontstaan",
+        "maker",
+        ],
+    }
+
+    def __init__(self, language='NL'):
+        self.language = language
+
     def _change_target(self, x: str):
-        if x in relations:
+        if x in self.relations[self.language]:
             return x
         else:
             return "unknown"
@@ -70,10 +105,9 @@ class FinRedEvaluator(BaseEvaluator):
                 ),
             ],
         )
-
-
+      
 if __name__ == "__main__":
-    evaluation = FinRedEvaluator("models/fingeitje").evaluate(
+    evaluation = FinRedEvaluator('NL').evaluate(
         "ice-hands/finred-messages", "test"
     )
     print(evaluation)
