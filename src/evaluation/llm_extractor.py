@@ -26,10 +26,11 @@ def relationship_present(pred, rels):
         return rels_present
 
 
-def generate_classification_message(instruction: str, prediction: str):
+def generate_classification_message(instruction: str, prediction: str, answer_scale = None):
 
-    scale_string = re.search('{(.*)}', instruction).group(1)
-    answer_scale = scale_string.split('/')
+    if answer_scale is None:
+        scale_string = re.search('{(.*)}', instruction).group(1)
+        answer_scale = scale_string.split('/')
 
     scale_string = ', '.join(f"'{w}'" for w in answer_scale[:-1])
     scale_string += f", and '{answer_scale[-1]}'"
@@ -119,12 +120,12 @@ def generate_message_convfinqa(instruction: str, prediction: str):
     ]
     return message
 
-def extracted_answers(df, client):
+def extracted_answers(df, client, answer_scale = None):
 
   extracted_answers = []
 
   for _, row in df.iterrows():
-    extracted_answers.append(open_ai_request(client, generate_classification_message(row['instruction'], row['prediction'])))
+    extracted_answers.append(open_ai_request(client, generate_classification_message(row['instruction'], row['prediction'], answer_scale)))
 
   return extracted_answers
 

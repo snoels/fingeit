@@ -3,5 +3,5 @@ data/*
 *.ipynb
 !data_processing.ipynb
 !combine_datasets.ipynb
-!evaluation.ipynb
-!evaluation_en.ipynb
+!evaluation_final.ipynb
+!evaluation_final_en.ipynb
