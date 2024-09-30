@@ -1,3 +1,8 @@
+""" Module contains the evaluator for the Ner cls dataset.
+
+Using the `src.evaluation.evaluator_base.BaseEvaluator` as a base class, the `NERCLSEvaluator` class implements the `_evaluate` method to evaluate the Ner cls dataset.
+"""
+
 from datasets import Dataset
 from sklearn.metrics import accuracy_score, f1_score
 

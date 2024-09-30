@@ -1,3 +1,10 @@
+""" Module contains the evaluator for the Headline dataset.
+
+Using the `src.evaluation.evaluator_base.BaseEvaluator` as a base class, the `HeadlineEvaluator` class implements the `_evaluate` method to evaluate the Headline dataset.
+
+"""
+
+
 import pandas as pd
 from datasets import Dataset
 from sklearn.metrics import accuracy_score, f1_score

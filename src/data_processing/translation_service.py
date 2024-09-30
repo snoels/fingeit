@@ -17,14 +17,14 @@ Instructions:
 """
 import argparse
 import asyncio
-import os
 
 import pandas as pd
 from datasets import Dataset, DatasetDict, load_from_disk
 
-from src.data_processing.config import load_config
+from src.data_processing.config import get_config
 from src.data_processing.prompters import AlpacaEmptyInputPrompter, AlpacaPrompter
 from src.data_processing.translators import ChatGptTranslator
+from src.data_processing.utils import save_dataset
 
 
 def load_args():
@@ -53,26 +53,6 @@ def load_args():
     )
 
     return parser.parse_args()
-
-
-def get_config(args):
-    """Loads configuration from config.ini file."""
-    sub_section = "TRANSLATE"
-    config = load_config()
-    target_language = args.target_language
-
-    system_prompt = config.get(sub_section, "system_prompt")
-    config.set(
-        sub_section,
-        "system_prompt",
-        system_prompt.replace("<target_language>", target_language),
-    )
-
-    prompt = config.get(sub_section, "prompt")
-    config.set(
-        sub_section, "prompt", prompt.replace("<target_language>", target_language)
-    )
-    return config[sub_section]
 
 
 def retry_translate_and_add_response(dataset, translator: ChatGptTranslator):
@@ -119,13 +99,6 @@ def translate_and_add_response(dataset, translator: ChatGptTranslator):
         translated_ds[dataset_keys] = Dataset.from_pandas(pd_df, preserve_index=False)
 
     return translated_ds
-
-
-def save_dataset(dataset, args):
-    """Saves dataset to new location."""
-    original_folder_name = args.db_location.split("/")[-1]
-    new_db_location = os.path.join(args.db_new_location, original_folder_name)
-    dataset.save_to_disk(new_db_location)
 
 
 if __name__ == "__main__":

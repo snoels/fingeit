@@ -1,6 +1,10 @@
+""" Module contains the evaluator for the Sentiment dataset.
+
+Using the `src.evaluation.evaluator_base.BaseEvaluator` as a base class, the `SentimentEvaluator` class implements the `_evaluate` method to evaluate the Sentiment dataset.
+"""
+
 from typing import Literal
 
-import pandas as pd
 from datasets import Dataset
 from sklearn.metrics import accuracy_score, f1_score
 

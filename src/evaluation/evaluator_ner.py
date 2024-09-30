@@ -1,3 +1,8 @@
+""" Module contains the evaluator for the Ner dataset.
+
+Using the `src.evaluation.evaluator_base.BaseEvaluator` as a base class, the `NEREvaluator` class implements the `_evaluate` method to evaluate the Ner dataset.
+"""
+
 import re
 
 import pandas as pd

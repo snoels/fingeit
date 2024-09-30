@@ -1,3 +1,7 @@
+""" Script to publish the dataset to huggingface hub.
+
+"""
+
 import argparse
 from configparser import ConfigParser
 from posixpath import abspath, dirname

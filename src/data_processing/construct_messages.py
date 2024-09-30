@@ -1,9 +1,15 @@
+""" Script to  Add system and user prompts to the dataset
+
+Given a dataset (--db_location), this script adds system and user prompts to the dataset and saves the new dataset to a new location (--db_new_location).
+
+"""
+
 import argparse
 import os
 
 from datasets import DatasetDict, load_from_disk
+from src.data_processing.utils import save_dataset
 
-from src.data_processing.translation_service import save_dataset
 
 ALPACA_INTROMESSAGE_INPUT = """Hieronder staat een instructie die een taak beschrijft, samen met een input die context voorziet
 Schrijf een reactie die op een passende manier voldoet aan de vraag.\n\n

@@ -1,3 +1,10 @@
+""" Module contains the baseclass for specific dataset evaluators.
+
+The BaseEvaluator contains all boilerplate code to evaluate a dataset using a model. 
+The class is meant to be subclassed by specific evaluators that implement the _evaluate templating method.
+
+"""
+
 from dataclasses import dataclass
 
 import pandas as pd

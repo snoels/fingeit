@@ -45,7 +45,7 @@ To run the script from your terminal:
 
 The purpose of the [translation_formatter.py](./translation_formatter.py) script is to reformat the translated datasets. This script ensures that the translated content is correctly distributed across the instruction, input, and output columns.The completed script can be found [here](./translation_formatter.py). 
 
-Run the script: \
+Run the script: 
 
 `python -m src.data_processing.translation_formatter --db_location <path to data> --db_new_location <path to new data>`
 

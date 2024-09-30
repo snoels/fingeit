@@ -1,3 +1,10 @@
+"""Module for prompters that add prompts to the dataset.
+
+Module contains a `Prompter` base class with a template method and 2 concrete implementations: 
+- AlpacaPrompter : Tempalate contains instruction, input and response.
+- AlpacaEmptyInputPrompter: Template contains instruction and response.
+"""
+
 class Prompter:
     def add_prompts(self, dataset):
         for dataset_keys in dataset.keys():

@@ -1,3 +1,6 @@
+""" Module for file access operations
+"""
+
 import os
 import uuid
 

@@ -5,8 +5,8 @@
 import argparse
 
 from datasets import Dataset, DatasetDict, load_from_disk
+from src.data_processing.utils import save_dataset
 
-from src.data_processing.translation_service import save_dataset
 
 
 def split_translation(text):

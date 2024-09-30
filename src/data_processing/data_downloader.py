@@ -1,3 +1,7 @@
+""" Script to download datasets
+All datasets mentioned in the config.ini file will be downloaded and saved under the directory passed in the arguments (--db_location).
+"""
+
 import argparse
 import os
 

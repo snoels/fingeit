@@ -24,9 +24,9 @@ import fasttext
 from datasets import Dataset, DatasetDict, load_from_disk
 from huggingface_hub import hf_hub_download
 
-from src.data_processing.translation_service import get_config, save_dataset
+from src.data_processing.config import get_config
 from src.data_processing.translators import ChatGptTranslator
-from src.data_processing.utils import filter_dataset, is_language
+from src.data_processing.utils import filter_dataset, is_language, save_dataset
 
 
 def parse_args() -> argparse.Namespace:

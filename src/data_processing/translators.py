@@ -1,3 +1,9 @@
+""" This module cotains the The chat gpt translator
+
+ChatGptTranslator contains all logic to interact with the OpenAI API to translate prompts to responses using the ChatGPT model. 
+The class provides both synchronous and asynchronous methods to handle the translation requests. The class is used in the translation_service.py module to translate the dataset.
+"""
+
 import asyncio
 import ssl
 

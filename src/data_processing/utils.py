@@ -1,3 +1,8 @@
+"""Module contains all utility functions used in the data processing pipeline.
+
+"""
+
+import os
 import re
 
 INSTRUCTION_INPUT_RESPONSE_REGEX = re.compile(
@@ -118,3 +123,10 @@ def is_language(text, model, target_language="nld"):
         predictions[0][0].replace("__label__", "").replace("_Latn", "")
         == target_language
     )
+
+
+def save_dataset(dataset, args):
+    """Saves dataset to new location."""
+    original_folder_name = args.db_location.split("/")[-1]
+    new_db_location = os.path.join(args.db_new_location, original_folder_name)
+    dataset.save_to_disk(new_db_location)
