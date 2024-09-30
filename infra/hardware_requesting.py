@@ -1,3 +1,9 @@
+""" Script to request a supergeldgeit instance in a zone where A100 GPUs are available on GCloud
+
+With the growing demand for A100 GPUs, it is becoming increasingly difficult to find a zone where these GPUs are available. 
+This script automates the process of searching for a zone where A100 GPUs are available and requesting a supergeldgeit instance in any zone where A100 GPUs are available.
+"""
+
 import subprocess
 
 
@@ -48,7 +54,7 @@ for zone in a_100_available_zones:
       
     print(process.returncode)
     if process.returncode == 0:
-        print("===================================\nWoop woop spinning up supergeldgeit\n===================================")
+        print("===================================\ninitiating supergeldgeit\n===================================")
         break
     else:
-        print("===================================\nNo luck, continuing the search\n===================================")
+        print("===================================\nsearching..\n===================================")

@@ -1,3 +1,10 @@
+""" Script to start the VM instance supergeldgeit in GCP.
+        
+This script starts the supergeldgeit instance in the asia-northeast1-c zone. 
+The script will keep retrying to start the instance until it is successfully started. 
+The external IP of the instance is printed to the console once the instance is started.
+"""
+
 import os
 import re
 import subprocess
@@ -35,10 +42,10 @@ while True:
    
     if process.returncode == 0:
         ip = get_external_ip()
-        print(f"===================================\n{color.GREEN} Woop woop starting supergeldgeit{color.END}\n===================================\n {color.BLUE}External IP: {ip}{color.END}\n===================================")
+        print(f"===================================\n{color.GREEN}Starting supergeldgeit.{color.END}\n===================================\n {color.BLUE}External IP: {ip}{color.END}\n===================================")
         break
     else:
-        print(f"===================================\n{color.RED} No luck, I'll try again in 30seconds{color.END}\n===================================")
+        print(f"===================================\n{color.RED}Retrying in 30s.{color.END}\n===================================")
         sleep(30)
 
 
