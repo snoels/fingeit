@@ -1,5 +1,5 @@
-""" Script to publish the dataset to huggingface hub.
-
+""" 
+Script to publish the dataset to huggingface hub.
 """
 
 import argparse
