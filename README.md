@@ -65,6 +65,8 @@ We would like to thank:
 
 - **Bram Vanroy** ([GitHub](https://github.com/BramVanroy)) for creating one of the first Dutch open source chat models, [GEITje-7B-ultra](https://huggingface.co/BramVanroy/GEITje-7B-ultra), and for open-sourcing its training, translation ([dutch-instruction-datasets](https://github.com/BramVanroy/dutch-instruction-datasets)), and evaluation details.
 
+- **Silverfin** for their collaboration in this research. Silverfin, a Belgian scale-up focused on building an accountancy cloud service, provided valuable insights and resources that were instrumental in the development of FinGEITje. More about their work can be found at [Silverfin](https://silverfin.com/).
+
 We also extend our gratitude to the contributors of the [Alignment Handbook](https://github.com/huggingface/alignment-handbook) for providing valuable resources that aided in the development of FinGEITje.
 
 ## License
