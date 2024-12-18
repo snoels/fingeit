@@ -37,19 +37,29 @@ GEITje is a large open Dutch financial language model with 7 billion parameters,
 This repository is based on the following paper:
 
 **A Dutch Financial Large Language Model**  
-[Link to the paper](https://arxiv.org/abs/2410.12835) <!-- Replace with actual link when available -->
+[Link to the paper](https://dl.acm.org/doi/abs/10.1145/3677052.3698628) <!-- Replace with actual link when available -->
 
 ### Citation
 
 If you use FinGEITje in your work, please cite:
 
 ```bibtex
-@article{FinGEITje2024,
-  title={A Dutch Financial Large Language Model},
-  author={Noels, Sander and De Blaere, Jorne and De Bie, Tijl},
-  journal={arXiv preprint arXiv:2410.12835},
-  year={2024},
-  url={https://arxiv.org/abs/2410.12835}
+@inproceedings{10.1145/3677052.3698628,
+author = {Noels, Sander and De Blaere, Jorne and De Bie, Tijl},
+title = {A Dutch Financial Large Language Model},
+year = {2024},
+isbn = {9798400710810},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3677052.3698628},
+doi = {10.1145/3677052.3698628},
+abstract = {This paper presents FinGEITje, the first Dutch financial Large Language Model (LLM) specifically designed and optimized for various financial tasks. Together with the model, we release a specialized Dutch financial instruction tuning dataset with over 140,000 samples, constructed employing an automated translation and data processing method. The open-source data construction method is provided, facilitating the creation of financial instruction datasets in different languages. To evaluate model performance, the study introduces the first Dutch financial evaluation benchmark, along with an automated evaluation method that utilizes an LLM as an independent evaluator, reducing manual intervention in performance evaluation. The experimental results highlight the superior performance of FinGEITje across five critical Dutch and English financial tasks.},
+booktitle = {Proceedings of the 5th ACM International Conference on AI in Finance},
+pages = {283–291},
+numpages = {9},
+keywords = {Financial Large Language Model, Instruction Tuning., Natural Language Processing},
+location = {Brooklyn, NY, USA},
+series = {ICAIF '24}
 }
 ```
 
